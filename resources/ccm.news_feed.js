@@ -155,13 +155,13 @@
             
             /* --- Private render functions ---*/
             
-            render = function( dataset ){
+            const render = function( dataset ){
                 renderInputArea();
                 renderPostArea();
                 renderPosts( dataset );
             };
             
-            renderInputArea = function(){
+            const renderInputArea = function(){
                 let inputHtml = self.ccm.helper.html( 
                     my.html.inputArea,
                     {
@@ -171,21 +171,21 @@
                 self.element.appendChild( inputHtml );
             };
             
-            renderPostArea = function(){
+            const renderPostArea = function(){
               let postsArea = self.ccm.helper.html( my.html.postsArea );
               self.element.appendChild( postsArea );
             };
             
-            renderPosts = function( postsData ){
+            const renderPosts = function( postsData ){
                 postsData.forEach( renderSinglePost );
             };
             
-            renderSinglePost = function( singlePostData ) {
+            const renderSinglePost = function( singlePostData ) {
                 let postsArea = self.element.querySelector('.posts-area');
                 postsArea.insertBefore( getPostHtml( singlePostData ), postsArea.childNodes[0] );
             };
             
-            getPostHtml = function( postData ){
+            const getPostHtml = function( postData ){
                 return self.ccm.helper.html( my.html.post, {
                   title:   postData.title,
                   date:    postData.date,
@@ -197,7 +197,7 @@
             
             /* --- Private button handlers ---*/
             
-            onPostSend = function( event ){
+            const onPostSend = function( event ){
                 event.preventDefault();
                 newPostTextElem = self.element.querySelector('.new-post-text');
                 newPostTitleElem = self.element.querySelector('.new-post-title');
@@ -214,7 +214,7 @@
                 my.newsStore.set( newPost );
             };
             
-            getDateTime = function() {
+            const getDateTime = function() {
                 let today = new Date();
                 let dd    = today.getDate();
                 let mm    = today.getMonth();
@@ -230,7 +230,7 @@
             
             /* --- Private event handlers --- */
             
-            toggleSendButtonState = function( isLoggedIn ){
+            const toggleSendButtonState = function( isLoggedIn ){
                 self.element.querySelector('.new-post-submit')
                 .disabled = !isLoggedIn;
             };
