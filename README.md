@@ -4,4 +4,4 @@ restrict news posting to authenticated users.
 News are fetched via a remote server providing a
 ccm-compatible datastore interface.
 
-[Demo](moritzkemp.github.io/ccm-news_feed)
+[Demo](https://moritzkemp.github.io/ccm-news_feed)
