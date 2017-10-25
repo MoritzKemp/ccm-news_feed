@@ -85,10 +85,6 @@
                                 "tag": "div",
                                 "class": "name",
                                 "inner": "%user%"
-                              },
-                              {
-                                "tag": "div",
-                                "class": "%avatar%"
                               }
                             ]
                           },
@@ -96,14 +92,15 @@
                             "tag": "div",
                             "class": "title",
                             "inner": [
+                              
+                              {
+                                "tag": "div",
+                                "inner": "%title%"
+                              },
                               {
                                 "tag": "div",
                                 "class": "date",
                                 "inner": "%date%"
-                              },
-                              {
-                                "tag": "div",
-                                "inner": "%title%"
                               }
                             ]
                           },
