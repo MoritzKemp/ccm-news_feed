@@ -269,6 +269,7 @@
                 searchParams.append("dataset[user]", newPost.user);
                 searchParams.append("dataset[key]", Math.floor((Math.random()*1000)+1));
                 completeURL = my.storeConfig.url+"?"+searchParams.toString();
+                console.log("Site controlled by: ", navigator.serviceWorker.controller);
                 navigator.serviceWorker.controller.postMessage( {
                     "request"   : completeURL,
                     "tag"       : "new-post"
