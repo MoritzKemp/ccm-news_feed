@@ -45,7 +45,11 @@ THE SOFTWARE.
                         {
                             "root" : document.querySelector('.news-feed'),
                             "user"  : user,
-                            "newsStore":  ["ccm.store", "https://moritzkemp.github.io/ccm-news_feed/resources/news_feed_store.js"]
+							"enableOffline": "true",
+                            "storeConfig":{
+                                "store":"moritz_kemp_news_feed",        
+                                "url":"https://ccm.inf.h-brs.de"
+                            } 
                         }
                     );
                 });
