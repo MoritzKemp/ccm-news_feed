@@ -121,6 +121,7 @@ self.addEventListener('sync', event =>{
 });
 
 self.addEventListener('message', event =>{
+    console.log("[SW-News-Feed] Message: ", event);
     switch(event.data.tag){
         case "new-post":
             handleNewPost(event.data.request);
@@ -143,7 +144,7 @@ const notifyPages = function(){
     });
 };
 
-const sendWaitingPostsToRequester = function(client){ 
+const sendWaitingPostsToRequester = function(client){
     objectStore(idb, "waiting-posts", "readwrite")
     .then( (objectStore) =>{
         return getAllObjects(objectStore);
@@ -211,9 +212,18 @@ const openDatabase = function(dbName, dbVersion){
 
 const objectStore = function( db, storeName, transactionMode ){
     return new Promise((resolve, reject )=>{
-        const objectStore = db
-            .transaction(storeName, transactionMode)
-            .objectStore(storeName);
+        let objectStore = {};
+        if(!idb){
+            openDatabase("newsFeed", "2").then(()=>{
+                objectStore = db
+                    .transaction(storeName, transactionMode)
+                    .objectStore(storeName);
+            });
+        } else {
+            objectStore = db
+                .transaction(storeName, transactionMode)
+                .objectStore(storeName);
+        }
         resolve(objectStore);
     });
 };

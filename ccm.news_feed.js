@@ -153,13 +153,12 @@
             
             this.start = function( callback ){
                 renderInputArea();
-                my.store.get( renderPosts, ()=>{
-                    if(navigator.serviceWorker.controller){
-                        navigator.serviceWorker.controller.postMessage({
-                            "tag":"waiting-posts"
-                        });
-                    }
-                } );
+                my.store.get( renderPosts );
+                if(navigator.serviceWorker.controller){
+                    navigator.serviceWorker.controller.postMessage({
+                        "tag":"waiting-posts"
+                    });
+                }
                 if(callback) callback();
             };
             
@@ -187,8 +186,7 @@
             
             const renderSinglePost = function( singlePostData, status='' ) {
                 let postsArea = self.element.querySelector('.posts-area');
-                postsArea.insertBefore( 
-                    self.ccm.helper.html( 
+                let newPostElem = self.ccm.helper.html( 
                         my.html.post, 
                         {
                             title:   singlePostData.title,
@@ -197,9 +195,16 @@
                             text:    singlePostData.text,
                             status:  status
                         } 
-                    ),
-                    postsArea.childNodes[0] 
-                );
+                    );
+                if(postsArea.firstChild){
+                    postsArea.insertBefore( 
+                        newPostElem,
+                        postsArea.childNodes[0] 
+                    );
+                } else {
+                    postsArea.appendChild(newPostElem);
+                }
+                
             };
             
             const renderWaitingPosts = function( waitingPostUrls ){
@@ -264,6 +269,7 @@
                 searchParams.append("dataset[user]", newPost.user);
                 searchParams.append("dataset[key]", Math.floor((Math.random()*1000)+1));
                 completeURL = my.storeConfig.url+"?"+searchParams.toString();
+                console.log("Site controlled by: ", navigator.serviceWorker.controller);
                 navigator.serviceWorker.controller.postMessage( {
                     "request"   : completeURL,
                     "tag"       : "new-post"
