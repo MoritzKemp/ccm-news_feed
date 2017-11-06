@@ -48,7 +48,7 @@ THE SOFTWARE.
 }
 
 .new-post-submit:disabled {
-    color: hsl(0, 0%, 100%)
+    color: hsl(0, 0%, 100%);
 }
 
 .new-post-title, .new-post-text {
@@ -58,6 +58,8 @@ THE SOFTWARE.
     border: 2px solid grey;
     box-sizing: border-box;
     padding: 5px;
+    font-size: 1em;
+    font-family: sans-serif;
 }
 
 
