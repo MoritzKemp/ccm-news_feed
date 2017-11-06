@@ -26,8 +26,8 @@
 
 const CACHE_NAME = "ccm-news-feed-v1";
 const cache_urls = {
-    "https://MoritzKemp.github.io/ccm-news_feed/resources/ccm.news_feed.js"    : "cacheFailNetwork",
-    "https://MoritzKemp.github.io/ccm-news_feed/resources/style.css"           : "cacheFailNetwork" 
+    "https://MoritzKemp.github.io/ccm-news_feed/ccm.news_feed.js"    : "cacheFailNetwork",
+    "https://MoritzKemp.github.io/ccm-news_feed/style.css"           : "cacheFailNetwork" 
 };
 
 let idb;

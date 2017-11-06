@@ -27,6 +27,14 @@
         name: 'news_feed',
         ccm: 'https://akless.github.io/ccm/version/ccm-11.2.0.min.js',
         config: {
+            "css" : ["ccm.load", "https://MoritzKemp.github.io/ccm-news_feed/style.css"],
+            "storeConfig":  {
+                    "store":"moritz_kemp_news_feed",
+                    "url":"https://ccm.inf.h-brs.de"
+            },
+            "store": '',
+            "user" : {},
+            "enableOffline" : "false",
             "html" : {
                 "inputArea" : {
                     "tag"   : "div",
@@ -85,10 +93,6 @@
                                 "tag": "div",
                                 "class": "name",
                                 "inner": "%user%"
-                              },
-                              {
-                                "tag": "div",
-                                "class": "%avatar%"
                               }
                             ]
                           },
@@ -96,14 +100,15 @@
                             "tag": "div",
                             "class": "title",
                             "inner": [
+                              
+                              {
+                                "tag": "div",
+                                "inner": "%title%"
+                              },
                               {
                                 "tag": "div",
                                 "class": "date",
                                 "inner": "%date%"
-                              },
-                              {
-                                "tag": "div",
-                                "inner": "%title%"
                               }
                             ]
                           },
@@ -129,14 +134,7 @@
                       }
                     ]
                   }
-            },
-            "css" : ["ccm.load", "./style.css"],
-            "newsStore":  ["ccm.store", {
-                    "store":"moritz_kemp_news_feed",
-                    "url":"https://ccm.inf.h-brs.de"
-            }],
-            "user" : {},
-            "offlineMode" : "false"
+            }
         },
         Instance: function(){
             const self = this;
@@ -145,23 +143,28 @@
             this.ready = function( callback ){
                 my = self.ccm.helper.privatize(self);
                 my.user.addObserver('newsfeed', toggleSendButtonState);
+                if("serviceWorker" in navigator && my.enableOffline === 'true'){
+                    navigator.serviceWorker.register("https://MoritzKemp.github.io/ccm-news_feed/serviceworker.js");
+                    navigator.serviceWorker.addEventListener("message", handleMessageFromServiceWorker);
+                }
+                my.store = self.ccm.store(my.storeConfig);
                 if(callback) callback();
             };
             
             this.start = function( callback ){
-                my.newsStore.get( render );
+                renderInputArea();
+                my.store.get( renderPosts );
+                if(navigator.serviceWorker.controller){
+                    navigator.serviceWorker.controller.postMessage({
+                        "tag":"waiting-posts"
+                    });
+                }
                 if(callback) callback();
             };
             
             /* --- Private render functions ---*/
             
-            render = function( dataset ){
-                renderInputArea();
-                renderPostArea();
-                renderPosts( dataset );
-            };
-            
-            renderInputArea = function(){
+            const renderInputArea = function(){
                 let inputHtml = self.ccm.helper.html( 
                     my.html.inputArea,
                     {
@@ -171,36 +174,57 @@
                 self.element.appendChild( inputHtml );
             };
             
-            renderPostArea = function(){
-              let postsArea = self.ccm.helper.html( my.html.postsArea );
-              self.element.appendChild( postsArea );
-            };
-            
-            renderPosts = function( postsData ){
+            const renderPosts = function( postsData ){
+                let oldPostArea = self.element.querySelector('.posts-area');
+                let newPostArea = self.ccm.helper.html( my.html.postsArea );
+                if(oldPostArea)
+                    self.element.replaceChild( newPostArea, oldPostArea );
+                else
+                    self.element.appendChild( newPostArea );
                 postsData.forEach( renderSinglePost );
             };
             
-            renderSinglePost = function( singlePostData ) {
+            const renderSinglePost = function( singlePostData, status='' ) {
                 let postsArea = self.element.querySelector('.posts-area');
-                postsArea.insertBefore( getPostHtml( singlePostData ), postsArea.childNodes[0] );
+                let newPostElem = self.ccm.helper.html( 
+                        my.html.post, 
+                        {
+                            title:   singlePostData.title,
+                            date:    singlePostData.date,
+                            user:    singlePostData.user,
+                            text:    singlePostData.text,
+                            status:  status
+                        } 
+                    );
+                if(postsArea.firstChild){
+                    postsArea.insertBefore( 
+                        newPostElem,
+                        postsArea.childNodes[0] 
+                    );
+                } else {
+                    postsArea.appendChild(newPostElem);
+                }
+                
             };
             
-            getPostHtml = function( postData ){
-                return self.ccm.helper.html( my.html.post, {
-                  title:   postData.title,
-                  date:    postData.date,
-                  user:    postData.user,
-                  text:    postData.text  
-                  
-                } );
+            const renderWaitingPosts = function( waitingPostUrls ){
+                waitingPostUrls.forEach( (urlString) =>{
+                    console.log(urlString);
+                    let url = new URL(urlString);
+                    let postData = {};
+                    for(let pair of url.searchParams.entries()){
+                        postData[pair[0]] = pair[1];
+                    }
+                    renderSinglePost( postData, 'waiting' );
+                });
             };
             
-            /* --- Private button handlers ---*/
+            /* --- Private functions to send a new post ---*/
             
-            onPostSend = function( event ){
+            const onPostSend = function( event ){
                 event.preventDefault();
-                newPostTextElem = self.element.querySelector('.new-post-text');
-                newPostTitleElem = self.element.querySelector('.new-post-title');
+                const newPostTextElem = self.element.querySelector('.new-post-text');
+                const newPostTitleElem = self.element.querySelector('.new-post-title');
                 const newText  = newPostTextElem.value;
                 const newTitle = newPostTitleElem.value;
                 newPostTextElem.value = '';
@@ -209,12 +233,19 @@
                     "title":    newTitle,
                     "text":     newText,
                     "date":     getDateTime(),
-                    "user":     my.user.data().user || ''
+                    "user":     my.user.data().name || ''
                 };
-                my.newsStore.set( newPost );
+                if(my.enableOffline === 'true' && navigator.serviceWorker.controller){
+                    renderSinglePost( newPost, 'waiting');
+                    sendPostViaServiceWorker( newPost );
+                }
+                else {
+                    renderSinglePost( newPost );
+                    my.store.set( newPost );
+                }
             };
             
-            getDateTime = function() {
+            const getDateTime = function() {
                 let today = new Date();
                 let dd    = today.getDate();
                 let mm    = today.getMonth();
@@ -228,11 +259,44 @@
                 return dd + ' ' + monat[ mm ].substring( 0, 3 ) + '. '  + yyyy + ' ' + hour + ':' + min;
             };
             
+            const sendPostViaServiceWorker = function( newPost ){
+                let completeURL = '';
+                let searchParams = new URLSearchParams();
+                searchParams.append("store", my.storeConfig.store);
+                searchParams.append("dataset[title]", newPost.title);
+                searchParams.append("dataset[text]", newPost.text);
+                searchParams.append("dataset[date]", newPost.date);
+                searchParams.append("dataset[user]", newPost.user);
+                searchParams.append("dataset[key]", Math.floor((Math.random()*1000)+1));
+                completeURL = my.storeConfig.url+"?"+searchParams.toString();
+                navigator.serviceWorker.controller.postMessage( {
+                    "request"   : completeURL,
+                    "tag"       : "new-post"
+                });
+            };
+            
             /* --- Private event handlers --- */
             
-            toggleSendButtonState = function( isLoggedIn ){
+            const toggleSendButtonState = function( isLoggedIn ){
                 self.element.querySelector('.new-post-submit')
                 .disabled = !isLoggedIn;
+            };
+            
+            const allPostsShipped = function(){
+                my.store.get( renderPosts );
+            };
+            
+            const handleMessageFromServiceWorker = function( event ){
+                switch( event.data.tag ){
+                    case "posts-shipped":
+                        allPostsShipped();
+                        break;
+                    case "waiting-posts":
+                        renderWaitingPosts( event.data.waitingPosts );
+                        break;
+                    default:
+                        console.log("No handler for sw-msg with tag: ", event.data.tag);
+                }
             };
         }
     };
