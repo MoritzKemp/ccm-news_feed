@@ -35,6 +35,7 @@
             "store": '',
             "user" : {},
             "enableOffline" : "false",
+            "useOwnServiceWorker": "true",
             "html" : {
                 "inputArea" : {
                     "tag"   : "div",
@@ -140,10 +141,16 @@
             const self = this;
             let my = {};
             
+            /* --- Public standard ccm functions */
+            
             this.ready = function( callback ){
                 my = self.ccm.helper.privatize(self);
                 my.user.addObserver('newsfeed', toggleSendButtonState);
-                if("serviceWorker" in navigator && my.enableOffline === 'true'){
+                if(
+                    "serviceWorker" in navigator && 
+                    my.enableOffline === 'true'  &&
+                    my.useOwnServiceWorker === 'true'
+                ){
                     navigator.serviceWorker.register("./serviceworker.js");
                     navigator.serviceWorker.addEventListener("message", handleMessageFromServiceWorker);
                 }
@@ -154,7 +161,7 @@
             this.start = function( callback ){
                 renderInputArea();
                 my.store.get( renderPosts );
-                if(navigator.serviceWorker.controller){
+                if(navigator.serviceWorker.controller && my.enableOffline === 'true'){
                     navigator.serviceWorker.controller.postMessage({
                         "tag":"waiting-posts"
                     });
