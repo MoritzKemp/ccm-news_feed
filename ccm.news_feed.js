@@ -161,7 +161,10 @@
             
             this.start = function( callback ){
                 renderInputArea();
-                my.store.get( renderPosts );
+                my.store.get( (response)=>{
+                    response.sort();
+                    renderPosts(response);
+                });
                 if(navigator.serviceWorker.controller && my.enableOffline === 'true'){
                     navigator.serviceWorker.controller.postMessage({
                         "tag":"waiting-posts"
@@ -194,11 +197,12 @@
             
             const renderSinglePost = function( singlePostData, status='' ) {
                 let postsArea = self.element.querySelector('.posts-area');
+                let d = new Date(singlePostData.date);
                 let newPostElem = self.ccm.helper.html( 
                         my.html.post, 
                         {
                             title:   singlePostData.title,
-                            date:    singlePostData.date,
+                            date:    d.toLocaleDateString(),
                             user:    singlePostData.user,
                             text:    singlePostData.text,
                             status:  status
@@ -237,10 +241,11 @@
                 const newTitle = newPostTitleElem.value;
                 newPostTextElem.value = '';
                 newPostTitleElem.value = '';
+                let d = new Date();
                 const newPost = {
                     "title":    newTitle,
                     "text":     newText,
-                    "date":     getDateTime(),
+                    "date":     d.getTime(),
                     "user":     my.user.data().name || ''
                 };
                 if(my.enableOffline === 'true' && navigator.serviceWorker.controller){
@@ -251,20 +256,6 @@
                     renderSinglePost( newPost );
                     my.store.set( newPost );
                 }
-            };
-            
-            const getDateTime = function() {
-                let today = new Date();
-                let dd    = today.getDate();
-                let mm    = today.getMonth();
-                let yyyy  = today.getFullYear();
-                let hour  = today.getHours();
-                let min   = today.getMinutes();
-                let monat = ["Januar", "Februar", "März", "April", "Mai", "Juni","Juli", "August", "September", "Oktober", "November", "Dezember"];
-                if ( dd < 10 ) dd = '0' + dd;
-                if ( hour < 10 ) hour = '0' + hour;
-                if ( min  < 10 ) min  = '0' + min;
-                return dd + ' ' + monat[ mm ].substring( 0, 3 ) + '. '  + yyyy + ' ' + hour + ':' + min;
             };
             
             const sendPostViaServiceWorker = function( newPost ){
