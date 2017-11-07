@@ -24,7 +24,7 @@
 
 /* global self, indexedDB, fetch, caches */
 
-const CACHE_NAME = "ccm-news-feed-v1";
+const CACHE_NAME = "ccm-news-feed-v3";
 const cache_urls = {
     "https://MoritzKemp.github.io/ccm-news_feed/ccm.news_feed.js"    : "cacheFailNetwork",
     "https://MoritzKemp.github.io/ccm-news_feed/style.css"           : "cacheFailNetwork" 
@@ -69,12 +69,12 @@ self.addEventListener('fetch', event =>{
 
 self.addEventListener('install', event =>{
     event.waitUntil(
-        caches.open(CACHE_NAME).then(( cache )=>{
-            for(let entry in cache_urls){
-                cache.add(entry);
-            }
-        })
-    );
+            caches.open(CACHE_NAME).then(( cache )=>{
+               for(let entry in cache_urls){
+                   cache.add(entry);
+               }
+           })
+        );
 });
 
 self.addEventListener('activate', event =>{
