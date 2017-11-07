@@ -148,10 +148,11 @@
                 my.user.addObserver('newsfeed', toggleSendButtonState);
                 if(
                     "serviceWorker" in navigator && 
-                    my.enableOffline === 'true'  &&
-                    my.useOwnServiceWorker === 'true'
+                    my.enableOffline === 'true'
                 ){
-                    navigator.serviceWorker.register("https://MoritzKemp.github.io/ccm-news_feed/serviceworker.js");
+                    if(my.useOwnServiceWorker === 'true'){
+                        navigator.serviceWorker.register("https://MoritzKemp.github.io/ccm-news_feed/serviceworker.js");
+                    }
                     navigator.serviceWorker.addEventListener("message", handleMessageFromServiceWorker);
                 }
                 my.store = self.ccm.store(my.storeConfig);
