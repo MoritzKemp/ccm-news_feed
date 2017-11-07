@@ -296,6 +296,7 @@
             };
             
             const handleMessageFromServiceWorker = function( event ){
+                console.log("[News-feed] Msg from sw: ", event);
                 switch( event.data.tag ){
                     case "posts-shipped":
                         allPostsShipped();
