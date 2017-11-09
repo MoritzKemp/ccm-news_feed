@@ -22,15 +22,30 @@
  * THE SOFTWARE.
  */
 
-/* global self, indexedDB, fetch, caches */
+/* global self, indexedDB, fetch, caches, Promise */
 
+
+/* --- IndexedDB configs */
+const DB_NAME = "newsFeed";
+const DB_VERSION = "2";
+const SEND_POST_STORE = "send-post-requests";
+const GET_POSTS_STORE = "get-posts-requests";
+let idb;
+/* --- Message tags --- */
+const MSG_FROM_PAGE_GET_POSTS = "get-posts";
+const MSG_FROM_PAGE_SEND_POST = "send-post";
+const MSG_TO_PAGE_GOT_POSTS = "got-posts";
+const MSG_TO_PAGE_POSTS_SENT = "posts-sent";
+const SYNC_SEND_POSTS = "send-posts";
+const SYNC_GET_POSTS = "get-posts";
+/* --- Cache config --- */
 const CACHE_NAME = "ccm-news-feed-v3";
 const cache_urls = {
-    "./ccm.news_feed.js"    : "cacheFailNetwork",
-    "./style.css"           : "cacheFailNetwork" 
+    "https://akless.github.io/ccm/ccm.js"   : "cacheFailNetwork",
+    "./"                                    : "networkFailCache",
+    "./ccm.news_feed.js"                    : "networkFailCache",
+    "./style.css"                           : "cacheFailNetwork"
 };
-
-let idb;
 
 self.addEventListener('fetch', event =>{
    let requestURL = new URL( event.request.url );
@@ -48,14 +63,14 @@ self.addEventListener('fetch', event =>{
             break;
         case "cacheFailNetwork":
             event.respondWith(
-                caches.match(event.request).then(function( cacheResponse ){
+                caches.match(event.request).then( (cacheResponse) =>{
                    return cacheResponse || fetch(event.request); 
                 })
             );
             break;
         case "networkFailCache":
             event.respondWith(
-                fetch(event.request).catch(function( ){
+                fetch(event.request).catch( () =>{
                    return caches.match(event.request);
                 })
             );
@@ -69,12 +84,12 @@ self.addEventListener('fetch', event =>{
 
 self.addEventListener('install', event =>{
     event.waitUntil(
-            caches.open(CACHE_NAME).then(( cache )=>{
-               for(let entry in cache_urls){
-                   cache.add(entry);
-               }
-           })
-        );
+        caches.open(CACHE_NAME).then( (cache)=>{
+           for(let entry in cache_urls){
+               cache.add(entry);
+           }
+       })
+    );
 });
 
 self.addEventListener('activate', event =>{
@@ -94,27 +109,50 @@ self.addEventListener('activate', event =>{
     );
 });
 
-// 3. Background-sync tries repeatly to send and ...
 self.addEventListener('sync', event =>{
-    if( event.tag === "new-post"){
+    if(event.tag === SYNC_SEND_POSTS){
         event.waitUntil(
-            objectStore(idb, "waiting-posts", 'readwrite')
+            objectStore(idb, SEND_POST_STORE, 'readwrite')
             .then( (objectStore) =>{
                 return getAllObjects(objectStore);
             })
             .then( (allObjects)=>{
-                return Promise.all(allObjects.map( (object) =>{
+                return Promise.all( allObjects.map( (object) =>{
                     return fetch( object.url )
                     .then(function( networkResponse ){
                         if( networkResponse.ok)
-                            return deleteObject(object.id);
+                            return deleteObject(object.id, SEND_POST_STORE);
                         else
                             reject(new Error("Could not send post with id: "+object.id));
                     });
                 }));
             })
             .then( ()=>{
-                notifyPages();
+                notifyPagesPostsSent();
+            })
+        );
+    }
+    if(event.tag === SYNC_GET_POSTS){
+        event.waitUntil(
+            objectStore(idb, GET_POSTS_STORE, "readwrite")
+            .then( (objectStore) =>{
+                return getAllObjects(objectStore);
+            })
+            .then( (allObjects)=>{
+                return Promise.all( allObjects.map( (object) =>{
+                    return fetch(object.url)
+                    .then( (response) =>{
+                        if( response.ok){
+                            deleteObject(object.id, GET_POSTS_STORE);
+                            return response.json();
+                        }
+                        else
+                            reject(new Error("Could not perform get-posts-request with id:"+object.id));
+                    })
+                    .then( (posts) =>{
+                        notifyPagesGotPosts(posts);
+                    });
+                }));
             })
         );
     }
@@ -123,53 +161,29 @@ self.addEventListener('sync', event =>{
 self.addEventListener('message', event =>{
     console.log("[SW-News-Feed] Message: ", event);
     switch(event.data.tag){
-        case "new-post":
-            handleNewPost(event.data.request);
+        case MSG_FROM_PAGE_SEND_POST:
+            sendNewPost(event.data.url);
             break;
-        case "waiting-posts":
-            sendWaitingPostsToRequester(event.source);
+        case MSG_FROM_PAGE_GET_POSTS:
+            getPosts(event.data.url);
             break;
         default:
             console.log("No handler in sw for event:", event);
     }
 });
 
-const notifyPages = function(){
-    self.clients.matchAll({includeUncontrolled: true}).then(function( clients ){ 
-        clients.forEach(function( client ){
-            client.postMessage(
-                {tag: "posts-shipped"}
-            );
-        });
-    });
-};
-
-const sendWaitingPostsToRequester = function(client){
-    objectStore(idb, "waiting-posts", "readwrite")
-    .then( (objectStore) =>{
-        return getAllObjects(objectStore);
+// Sends a new post object to a remote store
+// If offline, stores post object and registers back-sync
+const sendNewPost = (url) =>{
+    // 1. Try to send post object to remote store
+    fetch(url)
+    .then( (response) =>{
+    // 2. If successfull, send message to client
+        notifyPagesPostsSent();
     })
-    .then( (allUrls) =>{
-        let urls = [];
-        allUrls.forEach( (storedUrl) =>{
-            urls.push(storedUrl.url);
-        });
-        
-        client.postMessage({
-            "tag":"waiting-posts",
-            "waitingPosts": urls
-        });
-    });
-};
-
-const handleNewPost = function(url){
-    return fetch(url)
-    .then(( networkResponse )=>{
-        notifyPages();
-    })
-    .catch( ()=>{
-        // If it fails, store in indexedDB ...
-        objectStore(idb, "waiting-posts", "readwrite")
+    .catch( () =>{
+    // 3. If offline, store in IndexedDB
+        objectStore(idb, SEND_POST_STORE, "readwrite")
         .then((objectStore)=>{
             addObject( 
                 objectStore,
@@ -180,14 +194,74 @@ const handleNewPost = function(url){
             );
         })
         .then(()=>{
-            // ... and register background-sync
-            self.registration.sync.register('new-post');
+           // 4. Register back-sync
+            self.registration.sync.register(SYNC_SEND_POSTS);
         })
         .catch((error)=>{
             console.log("Error: ", error);
         });
     });
 };
+
+// Gets all posts from remote store
+// If offline, stores request and registers back-sync
+const getPosts = (url) =>{
+    // 1. Try to send post object to remote store
+    fetch(url)
+    .then( (response) =>{
+        return response.json();
+    })
+    .then( (posts) =>{
+        // 2. If successfull, send message with data to client
+        notifyPagesGotPosts(posts);
+    })
+    .catch( ()=>{
+        // 3. If offline, store in IndexedDB
+        objectStore(idb, GET_POSTS_STORE, "readwrite")
+        .then((objectStore)=>{
+            addObject( 
+                objectStore,
+                {
+                    "url":  url,
+                    "id":   Math.floor((Math.random()*1000)+1)
+                }
+            );
+        })
+        .then(()=>{
+           // 4. Register back-sync
+            self.registration.sync.register(SYNC_GET_POSTS);
+        })
+        .catch((error)=>{
+            console.log("Error: ", error);
+        });
+    });
+};
+
+const notifyPagesPostsSent = () =>{
+    self.clients.matchAll({includeUncontrolled: true}).then(function( clients ){ 
+        clients.forEach(function( client ){
+            client.postMessage(
+                {
+                    "tag": MSG_TO_PAGE_POSTS_SENT
+                }
+            );
+        });
+    });
+};
+
+const notifyPagesGotPosts = (posts) =>{
+    self.clients.matchAll({includeUncontrolled: true}).then(function( clients ){ 
+        clients.forEach(function( client ){
+            client.postMessage(
+                {
+                    "tag": MSG_TO_PAGE_GOT_POSTS,
+                    "posts": posts
+                }
+            );
+        });
+    });
+};
+
 
 /* --- Database functions */
 /* Inspired from "Building Progressive Web Apps", Tal Ater */
@@ -200,7 +274,8 @@ const openDatabase = function(dbName, dbVersion){
         };
         request.onupgradeneeded = function( event ){
             let db = event.target.result;
-            db.createObjectStore('waiting-posts', {keyPath: "id", autoIncrement: true});
+            db.createObjectStore(GET_POSTS_STORE, {keyPath: "id", autoIncrement: true});
+            db.createObjectStore(SEND_POST_STORE, {keyPath: "id", autoIncrement: true});
             idb = db;
         };
         request.onsuccess = function( event ){
@@ -214,7 +289,7 @@ const objectStore = function( db, storeName, transactionMode ){
     return new Promise((resolve, reject )=>{
         let objectStore = {};
         if(!idb){
-            openDatabase("newsFeed", "2").then(()=>{
+            openDatabase(DB_NAME, DB_VERSION).then(()=>{
                 objectStore = db
                     .transaction(storeName, transactionMode)
                     .objectStore(storeName);
@@ -247,9 +322,9 @@ const getAllObjects = function( objectStore ){
     });
 };
 
-const deleteObject = function( key ){
+const deleteObject = function( key, objectStoreName ){
     return new Promise( (resolve, reject)=>{
-        objectStore(idb, "waiting-posts", "readwrite").then(function( objectStore ){
+        objectStore(idb, objectStoreName, "readwrite").then(function( objectStore ){
             objectStore.delete(key).onsuccess = function( event ){
                 console.log("Delete successfull:", key);
                 resolve("Successfull delete key: "+ key);

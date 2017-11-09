@@ -140,6 +140,10 @@
         Instance: function(){
             const self = this;
             let my = {};
+            const MSG_TO_SW_GET_POSTS = "get-posts";
+            const MSG_TO_SW_SEND_POST = "send-post";
+            const MSG_FROM_SW_GOT_POSTS = "got-posts";
+            const MSG_FROM_SW_POSTS_SENT = "posts-sent";
             
             /* --- Public standard ccm functions */
             
@@ -161,13 +165,15 @@
             
             this.start = function( callback ){
                 renderInputArea();
-                my.store.get( (response)=>{
-                    response.sort();
-                    renderPosts(response);
-                });
+                
                 if(navigator.serviceWorker.controller && my.enableOffline === 'true'){
                     navigator.serviceWorker.controller.postMessage({
-                        "tag":"waiting-posts"
+                        "tag" : MSG_TO_SW_GET_POSTS,
+                        "url" : my.storeConfig.url +"?store="+my.storeConfig.store
+                    });
+                } else {
+                    my.store.get( (response)=>{
+                        renderPosts(response);
                     });
                 }
                 if(callback) callback();
@@ -192,6 +198,7 @@
                     self.element.replaceChild( newPostArea, oldPostArea );
                 else
                     self.element.appendChild( newPostArea );
+                postsData.sort(comparePosts);
                 postsData.forEach( renderSinglePost );
             };
             
@@ -217,18 +224,6 @@
                     postsArea.appendChild(newPostElem);
                 }
                 
-            };
-            
-            const renderWaitingPosts = function( waitingPostUrls ){
-                waitingPostUrls.forEach( (urlString) =>{
-                    console.log(urlString);
-                    let url = new URL(urlString);
-                    let postData = {};
-                    for(let pair of url.searchParams.entries()){
-                        postData[pair[0]] = pair[1];
-                    }
-                    renderSinglePost( postData, 'waiting' );
-                });
             };
             
             /* --- Private functions to send a new post ---*/
@@ -268,10 +263,9 @@
                 searchParams.append("dataset[user]", newPost.user);
                 searchParams.append("dataset[key]", Math.floor((Math.random()*1000)+1));
                 completeURL = my.storeConfig.url+"?"+searchParams.toString();
-                console.log("Site controlled by: ", navigator.serviceWorker.controller);
                 navigator.serviceWorker.controller.postMessage( {
-                    "request"   : completeURL,
-                    "tag"       : "new-post"
+                    "tag"   : MSG_TO_SW_SEND_POST,
+                    "url"   : completeURL
                 });
             };
             
@@ -282,23 +276,38 @@
                 .disabled = !isLoggedIn;
             };
             
+            // Get a fresh copy of remote post after all pending posts are send
             const allPostsShipped = function(){
-                my.store.get( renderPosts );
+                navigator.serviceWorker.controller.postMessage({
+                    "tag" : MSG_TO_SW_GET_POSTS,
+                    "url" : my.storeConfig.url +"?store="+my.storeConfig.store
+                });
             };
             
             const handleMessageFromServiceWorker = function( event ){
                 console.log("[News-feed] Msg from sw: ", event);
                 switch( event.data.tag ){
-                    case "posts-shipped":
+                    case MSG_FROM_SW_GOT_POSTS:
+                        renderPosts(event.data.posts);
+                        break;
+                    case MSG_FROM_SW_POSTS_SENT:
                         allPostsShipped();
                         break;
-                    case "waiting-posts":
-                        renderWaitingPosts( event.data.waitingPosts );
-                        break;
                     default:
-                        console.log("No handler for sw-msg with tag: ", event.data.tag);
+                        console.log("[News-feed] No handler for msg-tag: ", event.data.tag);
                 }
             };
+            
+            const comparePosts = (a, b) =>{
+                if(a.date >= b.date)
+                    return 1;
+                else
+                    return -1;
+            };
+            
+            const view = {};
+            const model = {};
+            const controller = {};
         }
     };
     
