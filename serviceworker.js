@@ -112,7 +112,7 @@ self.addEventListener('activate', event =>{
 self.addEventListener('sync', event =>{
     if(event.tag === SYNC_SEND_POSTS){
         event.waitUntil(
-            objectStore(idb, SEND_POST_STORE, 'readwrite')
+            objectStore(SEND_POST_STORE, 'readwrite')
             .then( (objectStore) =>{
                 return getAllObjects(objectStore);
             })
@@ -134,7 +134,7 @@ self.addEventListener('sync', event =>{
     }
     if(event.tag === SYNC_GET_POSTS){
         event.waitUntil(
-            objectStore(idb, GET_POSTS_STORE, "readwrite")
+            objectStore(GET_POSTS_STORE, "readwrite")
             .then( (objectStore) =>{
                 return getAllObjects(objectStore);
             })
@@ -151,6 +151,9 @@ self.addEventListener('sync', event =>{
                     })
                     .then( (posts) =>{
                         notifyPagesGotPosts(posts);
+                    })
+                    .catch( () =>{
+                        reject(new Error("Seems to be still offline."));
                     });
                 }));
             })
@@ -183,7 +186,7 @@ const sendNewPost = (url) =>{
     })
     .catch( () =>{
     // 3. If offline, store in IndexedDB
-        objectStore(idb, SEND_POST_STORE, "readwrite")
+        objectStore(SEND_POST_STORE, "readwrite")
         .then((objectStore)=>{
             addObject( 
                 objectStore,
@@ -217,7 +220,7 @@ const getPosts = (url) =>{
     })
     .catch( ()=>{
         // 3. If offline, store in IndexedDB
-        objectStore(idb, GET_POSTS_STORE, "readwrite")
+        objectStore(GET_POSTS_STORE, "readwrite")
         .then((objectStore)=>{
             addObject( 
                 objectStore,
@@ -285,17 +288,17 @@ const openDatabase = function(dbName, dbVersion){
     });
 };
 
-const objectStore = function( db, storeName, transactionMode ){
+const objectStore = function( storeName, transactionMode ){
     return new Promise((resolve, reject )=>{
         let objectStore = {};
         if(!idb){
-            openDatabase(DB_NAME, DB_VERSION).then(()=>{
-                objectStore = db
+            openDatabase(DB_NAME, DB_VERSION).then( ()=>{
+                objectStore = idb
                     .transaction(storeName, transactionMode)
                     .objectStore(storeName);
             });
         } else {
-            objectStore = db
+            objectStore = idb
                 .transaction(storeName, transactionMode)
                 .objectStore(storeName);
         }
@@ -324,7 +327,7 @@ const getAllObjects = function( objectStore ){
 
 const deleteObject = function( key, objectStoreName ){
     return new Promise( (resolve, reject)=>{
-        objectStore(idb, objectStoreName, "readwrite").then(function( objectStore ){
+        objectStore(objectStoreName, "readwrite").then(function( objectStore ){
             objectStore.delete(key).onsuccess = function( event ){
                 console.log("Delete successfull:", key);
                 resolve("Successfull delete key: "+ key);

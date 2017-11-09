@@ -165,7 +165,6 @@
             
             this.start = function( callback ){
                 renderInputArea();
-                
                 if("serviceWorker" in navigator){
                     if(navigator.serviceWorker.controller && my.enableOffline === 'true'){
                         navigator.serviceWorker.controller.postMessage({
@@ -193,13 +192,17 @@
                 self.element.appendChild( inputHtml );
             };
             
-            const renderPosts = function( postsData ){
+            const renderPostsArea = function(){
                 let oldPostArea = self.element.querySelector('.posts-area');
                 let newPostArea = self.ccm.helper.html( my.html.postsArea );
                 if(oldPostArea)
                     self.element.replaceChild( newPostArea, oldPostArea );
                 else
                     self.element.appendChild( newPostArea );
+            };
+            
+            const renderPosts = function( postsData ){
+                renderPostsArea();
                 postsData.sort(comparePosts);
                 postsData.forEach( renderSinglePost );
             };
