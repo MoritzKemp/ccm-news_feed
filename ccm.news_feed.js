@@ -166,11 +166,13 @@
             this.start = function( callback ){
                 renderInputArea();
                 
-                if(navigator.serviceWorker.controller && my.enableOffline === 'true'){
-                    navigator.serviceWorker.controller.postMessage({
-                        "tag" : MSG_TO_SW_GET_POSTS,
-                        "url" : my.storeConfig.url +"?store="+my.storeConfig.store
-                    });
+                if("serviceWorker" in navigator){
+                    if(navigator.serviceWorker.controller && my.enableOffline === 'true'){
+                        navigator.serviceWorker.controller.postMessage({
+                            "tag" : MSG_TO_SW_GET_POSTS,
+                            "url" : my.storeConfig.url +"?store="+my.storeConfig.store
+                        });
+                    }    
                 } else {
                     my.store.get( (response)=>{
                         renderPosts(response);
@@ -243,11 +245,12 @@
                     "date":     d.getTime(),
                     "user":     my.user.data().name || ''
                 };
-                if(my.enableOffline === 'true' && navigator.serviceWorker.controller){
-                    renderSinglePost( newPost, 'waiting');
-                    sendPostViaServiceWorker( newPost );
-                }
-                else {
+                if("serviceWorker" in navigator){
+                    if(my.enableOffline === 'true' && navigator.serviceWorker.controller){
+                        renderSinglePost( newPost, 'waiting');
+                        sendPostViaServiceWorker( newPost );
+                    }    
+                } else {
                     renderSinglePost( newPost );
                     my.store.set( newPost );
                 }
