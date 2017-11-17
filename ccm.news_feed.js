@@ -164,7 +164,7 @@
             };
             
             this.start = function( callback ){
-                my.user.addObserver('newsfeed', toggleSendButtonState);
+                self.user.addObserver('newsfeed', toggleSendButtonState);
                 renderInputArea();
                 if("serviceWorker" in navigator){
                     if(navigator.serviceWorker.controller && my.enableOffline === 'true'){
@@ -247,7 +247,7 @@
                     "title":    newTitle,
                     "text":     newText,
                     "date":     d.getTime(),
-                    "user":     my.user.data().name || ''
+                    "user":     self.user.data().name || ''
                 };
                 if("serviceWorker" in navigator){
                     if(my.enableOffline === 'true' && navigator.serviceWorker.controller){
