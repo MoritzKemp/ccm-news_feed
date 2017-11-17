@@ -149,7 +149,7 @@
             
             this.ready = function( callback ){
                 my = self.ccm.helper.privatize(self);
-                my.user.addObserver('newsfeed', toggleSendButtonState);
+                
                 if(
                     "serviceWorker" in navigator && 
                     my.enableOffline === 'true'
@@ -164,6 +164,7 @@
             };
             
             this.start = function( callback ){
+                my.user.addObserver('newsfeed', toggleSendButtonState);
                 renderInputArea();
                 if("serviceWorker" in navigator){
                     if(navigator.serviceWorker.controller && my.enableOffline === 'true'){

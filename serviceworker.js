@@ -124,12 +124,16 @@ self.addEventListener('sync', event =>{
                             return deleteObject(object.id, SEND_POST_STORE);
                         else
                             reject(new Error("Could not send post with id: "+object.id));
+                    })
+                    .catch( () =>{
+                        reject(new Error("Seems to be still offline."));
                     });
                 }));
             })
             .then( ()=>{
                 notifyPagesPostsSent();
             })
+            
         );
     }
     if(event.tag === SYNC_GET_POSTS){
