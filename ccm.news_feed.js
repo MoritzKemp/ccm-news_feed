@@ -27,15 +27,15 @@
         name: 'news_feed',
         ccm: 'https://akless.github.io/ccm/version/ccm-11.2.0.min.js',
         config: {
-            "css" : ["ccm.load", "./style.css"],
             "storeConfig":  {
                     "store":"moritz_kemp_news_feed",
                     "url":"https://ccm.inf.h-brs.de"
             },
             "store": '',
-            "user" : {},
+            "user" : ["ccm.instance", "https://akless.github.io/ccm-components/user/ccm.user.min.js"],
             "enableOffline" : "false",
             "useOwnServiceWorker": "true",
+            "css" : ["ccm.load", "./style.css"],
             "html" : {
                 "inputArea" : {
                     "tag"   : "div",
@@ -149,7 +149,7 @@
             
             this.ready = function( callback ){
                 my = self.ccm.helper.privatize(self);
-                my.user.addObserver('newsfeed', toggleSendButtonState);
+                
                 if(
                     "serviceWorker" in navigator && 
                     my.enableOffline === 'true'
@@ -164,6 +164,8 @@
             };
             
             this.start = function( callback ){
+                self.user.addObserver('newsfeed', toggleSendButtonState);
+                self.user.start();
                 renderInputArea();
                 if("serviceWorker" in navigator){
                     if(navigator.serviceWorker.controller && my.enableOffline === 'true'){
@@ -246,7 +248,7 @@
                     "title":    newTitle,
                     "text":     newText,
                     "date":     d.getTime(),
-                    "user":     my.user.data().name || ''
+                    "user":     self.user.data().name || ''
                 };
                 if("serviceWorker" in navigator){
                     if(my.enableOffline === 'true' && navigator.serviceWorker.controller){
