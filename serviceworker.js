@@ -151,13 +151,13 @@ self.addEventListener('sync', event =>{
                             return response.json();
                         }
                         else
-                            reject(new Error("Could not perform get-posts-request with id:"+object.id));
+                            new Error("Could not perform get-posts-request with id:"+object.id);
                     })
                     .then( (posts) =>{
                         notifyPagesGotPosts(posts);
                     })
                     .catch( () =>{
-                        reject(new Error("Seems to be still offline."));
+                        return new Error("Seems to be still offline.");
                     });
                 }));
             })

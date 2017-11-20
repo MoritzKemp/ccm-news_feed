@@ -167,11 +167,19 @@
                 self.user.addObserver('newsfeed', toggleSendButtonState);
                 self.user.start();
                 renderInputArea();
-                if("serviceWorker" in navigator){
-                    if(navigator.serviceWorker.controller && my.enableOffline === 'true'){
+                if("serviceWorker" in navigator && my.enableOffline === 'true'){
+                    if(navigator.serviceWorker.controller){
                         navigator.serviceWorker.controller.postMessage({
                             "tag" : MSG_TO_SW_GET_POSTS,
                             "url" : my.storeConfig.url +"?store="+my.storeConfig.store
+                        });
+                    } else {
+                        navigator.serviceWorker.ready
+                        .then((registration)=>{
+                           registration.active.postMessage({
+                                "tag" : MSG_TO_SW_GET_POSTS,
+                                "url" : my.storeConfig.url +"?store="+my.storeConfig.store
+                            }); 
                         });
                     }    
                 } else {
