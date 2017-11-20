@@ -27,15 +27,15 @@
         name: 'news_feed',
         ccm: 'https://akless.github.io/ccm/version/ccm-11.2.0.min.js',
         config: {
-            "css" : ["ccm.load", "https://MoritzKemp.github.io/ccm-news_feed/style.css"],
             "storeConfig":  {
                     "store":"moritz_kemp_news_feed",
                     "url":"https://ccm.inf.h-brs.de"
             },
             "store": '',
-            "user" : {},
+            "user" : ["ccm.instance", "https://akless.github.io/ccm-components/user/ccm.user.min.js"],
             "enableOffline" : "false",
             "useOwnServiceWorker": "true",
+            "css" : ["ccm.load", "https://MoritzKemp.github.io/ccm-news_feed/style.css"],
             "html" : {
                 "inputArea" : {
                     "tag"   : "div",
@@ -165,6 +165,7 @@
             
             this.start = function( callback ){
                 self.user.addObserver('newsfeed', toggleSendButtonState);
+                self.user.start();
                 renderInputArea();
                 if("serviceWorker" in navigator){
                     if(navigator.serviceWorker.controller && my.enableOffline === 'true'){
