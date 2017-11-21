@@ -186,6 +186,7 @@
                         renderPosts(response);
                     });
                 }
+                renderPostsArea();
                 if(callback) callback();
             };
             
