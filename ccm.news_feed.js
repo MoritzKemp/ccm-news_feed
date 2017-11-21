@@ -149,7 +149,6 @@
             
             this.ready = function( callback ){
                 my = self.ccm.helper.privatize(self);
-                
                 if(
                     "serviceWorker" in navigator && 
                     my.enableOffline === 'true'
@@ -258,11 +257,9 @@
                     "date":     d.getTime(),
                     "user":     self.user.data().name || ''
                 };
-                if("serviceWorker" in navigator){
-                    if(my.enableOffline === 'true' && navigator.serviceWorker.controller){
-                        renderSinglePost( newPost, 'waiting');
-                        sendPostViaServiceWorker( newPost );
-                    }    
+                if("serviceWorker" in navigator && my.enableOffline === 'true'){
+                    renderSinglePost( newPost, 'waiting');
+                    sendPostViaServiceWorker( newPost );
                 } else {
                     renderSinglePost( newPost );
                     my.store.set( newPost );
@@ -279,10 +276,20 @@
                 searchParams.append("dataset[user]", newPost.user);
                 searchParams.append("dataset[key]", Math.floor((Math.random()*1000)+1));
                 completeURL = my.storeConfig.url+"?"+searchParams.toString();
-                navigator.serviceWorker.controller.postMessage( {
-                    "tag"   : MSG_TO_SW_SEND_POST,
-                    "url"   : completeURL
-                });
+                if(navigator.serviceWorker.controller){
+                    navigator.serviceWorker.controller.postMessage( {
+                        "tag"   : MSG_TO_SW_SEND_POST,
+                        "url"   : completeURL
+                    });
+                } else {
+                    navigator.serviceWorker.ready.then((registration)=>{
+                        registration.active.postMessage( {
+                            "tag"   : MSG_TO_SW_SEND_POST,
+                            "url"   : completeURL
+                        });
+                    });
+                }
+                
             };
             
             /* --- Private event handlers --- */
