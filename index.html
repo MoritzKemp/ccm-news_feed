@@ -33,26 +33,24 @@ THE SOFTWARE.
     <body>
         <div class="login"></div>
         <div class="news-feed"></div>
+        
         <script>
+            
             ccm.start(
-            'https://akless.github.io/ccm-components/user/ccm.user.min.js',
-                {
-                    "root"   : document.querySelector('.login'),
-                    "sign_on": "guest"
-                }, function( user ){
-                    ccm.start(
-                        './ccm.news_feed.js',
-                        {
-                            "root" : document.querySelector('.news-feed'),
-                            "user"  : user,
-                            "enableOffline": "false",
-                            "storeConfig":{
-                                "store":"moritz_kemp_news_feed",        
-                                "url":"https://ccm.inf.h-brs.de"
-                            }
-                        }
-                    );
-                });
+                'https://moritzkemp.github.io/ccm-news_feed/ccm.news_feed.js',
+                 {
+                    "root" : document.querySelector('.news-feed'),
+                    "user"  : ["ccm.instance", "https://akless.github.io/ccm-components/user/ccm.user.min.js", {
+                        "root"   : document.querySelector('.login'),
+                        "sign_on": "guest"
+                    }],
+                    "enableOffline": "true",
+                    "storeConfig":{
+                        "store":"moritz_kemp_news_feed",        
+                        "url":"https://ccm.inf.h-brs.de"
+                    }
+                }
+            );
         </script>
     </body>
 </html>
