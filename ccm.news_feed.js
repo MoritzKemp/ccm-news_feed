@@ -25,7 +25,7 @@
 (function(){
     var component = {
         name: 'news_feed',
-        ccm: 'https://akless.github.io/ccm/version/ccm-11.2.0.min.js',
+        ccm: 'https://akless.github.io/ccm/version/ccm-14.3.0.min.js',
         config: {
             "storeConfig":  {
                     "store":"moritz_kemp_news_feed",
@@ -163,8 +163,8 @@
             };
             
             this.start = function( callback ){
-                self.user.addObserver('newsfeed', toggleSendButtonState);
-                self.user.start();
+                my.user.addObserver('newsfeed', toggleSendButtonState);
+                my.user.start();
                 renderInputArea();
                 if("serviceWorker" in navigator && my.enableOffline === 'true'){
                     if(navigator.serviceWorker.controller){
@@ -256,7 +256,7 @@
                     "title":    newTitle,
                     "text":     newText,
                     "date":     d.getTime(),
-                    "user":     self.user.data().name || ''
+                    "user":     my.user.data().name || ''
                 };
                 if("serviceWorker" in navigator && my.enableOffline === 'true'){
                     renderSinglePost( newPost, 'waiting');
